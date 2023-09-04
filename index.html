@@ -495,7 +495,6 @@
 
                 let names = []
                 let regex_names = {}
-                let invalid_found = []
                 for (const f of files) {
                     let name = await get_name(f,old_loader)
                     if (name != undefined && name != null) {
@@ -516,7 +515,6 @@
                     if (data != undefined) {
                         zip.file(data[0], data[1])
                     } else {
-                        invalid_found[invalid_found.length] = i
                         errors.innerHTML += n+" не найден<br>"
                     }
                     loadbar_progress++
