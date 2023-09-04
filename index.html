@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ModpackUpdate</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
 
     <style>
         body {
@@ -243,7 +239,7 @@
 
                 <div class="field">
                     <p>Выберите моды</p>
-                    <input type="file" id="files" accept=".jar" multiple="multiple">
+                    <input type="file" id="files" accept=".jar" multiple>
                 </div>
 
                 <button class="submit" onclick="start()">Начать</button>
@@ -371,86 +367,88 @@
         }
 
         async function find_on_modrinth(query,version,loader,regex_query) {
-            try {
-                let resp = await $.ajax({
-                    url: 'https://api.modrinth.com/v2/search',
-                    type: "GET",
-                    data: {"query": query},
-                    dataType: "JSON"
-                })
-                if (resp != undefined && 
-                        "hits" in resp && 
-                        resp["hits"].length > 0) {
-                    for (const hit of resp["hits"]) {
-                        if (similarity(regex_name(hit["title"]),regex_query) > 0.8) {
-                            if (hit["categories"].includes(loader)) {
-                                resp = await $.ajax({
-                                    url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
+            let resp = await $.ajax({
+                url: 'https://api.modrinth.com/v2/search',
+                type: "GET",
+                data: {"query": query},
+                dataType: "JSON"
+            })
+            if (resp != undefined && 
+                    "hits" in resp && 
+                    resp["hits"].length > 0) {
+                for (const hit of resp["hits"]) {
+                    if (similarity(regex_name(hit["title"]),regex_query) > 0.8) {
+                        if (hit["categories"].includes(loader)) {
+                            resp = await $.ajax({
+                                url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
+                                type: "GET",
+                                data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
+                                dataType: "JSON"
+                            })
+                            if (len(resp) > 0 && len(resp[0]["files"]) > 0) {
+                                let file = await $.ajax({
+                                    url: resp[0]["files"][0]["url"],
                                     type: "GET",
-                                    data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
-                                    dataType: "JSON"
-                                })
-                                console.log($.ajax({
-                                    url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
-                                    type: "GET",
-                                    data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
-                                    dataType: "JSON"
-                                }))
-                                if (len(resp) > 0 && len(resp[0]["files"]) > 0) {
-                                    let file = await $.ajax({
-                                        url: resp[0]["files"][0]["url"],
-                                        type: "GET"
-                                    })
-                                    return [resp[0]["files"][0]["filename"],file]
+                                    headers: {"Content-Type": "application/json",
+                                        "Access-Control-Allow-Origin": "*",
+                                        "Access-Control-Allow-Credentials": "true",
+                                        "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS,POST,PUT",
+                                        "Access-Control-Allow-Headers": "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers"
                                 }
+                                })
+                                return [resp[0]["files"][0]["filename"],file]
                             }
                         }
                     }
                 }
-            } catch (err) {
-                console.log(err)
             }
         }
 
         async function find_on_curseforge(query,version,loader,regex_query) {
-            try {
-                let resp = await $.ajax({
-                    url: 'https://api.curseforge.com/v1/mods/search',
-                    type: "GET",
-                    data: {"gameId":432, 
-                        "modLoaderType":loader.toTitle(), 
-                        "gameVersion":version,
-                        "searchFilter":query},
-                    headers: {"x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.","Accept": "application/json"},
-                    dataType: "JSON"
-                })
-                if (resp != undefined && 
-                        "data" in resp && 
-                        len(resp["data"]) > 0) {
-                    for (const hit of resp["data"]) {
-                        if (similarity(regex_name(hit["name"]),regex_query) > 0.8) {
-                            let files = await $.ajax({
-                                url: 'https://api.curseforge.com/v1/mods/'+hit['id']+'/files',
+            let resp = await $.ajax({
+                url: 'https://api.curseforge.com/v1/mods/search',
+                type: "GET",
+                data: {"gameId":432, 
+                    "modLoaderType":loader.toTitle(), 
+                    "gameVersion":version,
+                    "searchFilter":query},
+                headers: {
+                    "x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.",
+                    "Accept": "application/json"},
+                dataType: "JSON"
+            })
+            if (resp != undefined && 
+                    "data" in resp && 
+                    len(resp["data"]) > 0) {
+                for (const hit of resp["data"]) {
+                    if (similarity(regex_name(hit["name"]),regex_query) > 0.8) {
+                        let files = await $.ajax({
+                            url: 'https://api.curseforge.com/v1/mods/'+hit['id']+'/files',
+                            type: "GET",
+                            data: {"modLoaderType":loader.toTitle(),"gameVersion":version},
+                            headers: {
+                                "x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.",
+                                "Accept": "application/json"},
+                            dataType: "JSON"
+                        })
+                        if (files != undefined && 
+                                "data" in files && 
+                                len(files["data"]) > 0) {
+                            files = files["data"]
+                            let file = await $.ajax({
+                                url: files[0]["downloadUrl"],
                                 type: "GET",
-                                data: {"modLoaderType":loader.title(),"gameVersion":version},
-                                headers: {"x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.","Accept": "application/json"},
-                                dataType: "JSON"
+                                headers: {"Content-Type": "application/json",
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Credentials": "true",
+                                    "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS,POST,PUT",
+                                    "Access-Control-Allow-Headers": "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers"
+                                }
                             })
-                            if (files != undefined && 
-                                    "data" in files && 
-                                    len(files["data"]) > 0) {
-                                files = files["data"]
-                                let file = await $.ajax({
-                                    url: files[0]["downloadUrl"],
-                                    type: "GET"
-                                })
-                                return [files[0]["fileName"],file]
-                            }
+                            return [files[0]["fileName"],file]
                         }
                     }
                 }
-            } catch (err) {
-                console.log(err)
             }
         }
 
