@@ -44,6 +44,7 @@
             border-radius: 30px;
             box-shadow: 0 0 10px #000;
             margin: 10px;
+            position: relative;
         }
 
         #put-forms {
@@ -81,6 +82,9 @@
             border-radius: 100px;
             padding: 3px;
             box-shadow: 0 0 5px #171717;
+            position: absolute;
+            bottom: 10px;
+            width: 430px;
         }
 
         #loaded-bar {
@@ -162,32 +166,32 @@
                     <p>Выберите версию для модов</p>
 
                     <select id="versions">
-                        <option>1.20.1</option>
-                        <option>1.20</option>
-                        <option>1.19.4</option>
-                        <option>1.19.3</option> 
-                        <option>1.19.2</option> 
-                        <option>1.19.1</option> 
-                        <option>1.19</option> 
-                        <option>1.18.2</option> 
-                        <option>1.18.1</option> 
-                        <option>1.18</option> 
-                        <option>1.17.1</option> 
-                        <option>1.17</option> 
-                        <option>1.16.5</option> 
-                        <option>1.16.4</option> 
-                        <option>1.16.3</option>
-                        <option>1.16.2</option> 
-                        <option>1.16.1</option> 
-                        <option>1.16</option> 
-                        <option>1.15.2</option> 
-                        <option>1.15.1</option> 
-                        <option>1.15</option> 
-                        <option>1.14.4</option> 
-                        <option>1.14.3</option> 
-                        <option>1.14.2</option> 
-                        <option>1.14.1</option> 
-                        <option>1.14</option>
+                        <option value="1.20.1">1.20.1</option>
+                        <option value="1.20">1.20</option>
+                        <option value="1.19.4">1.19.4</option>
+                        <option value="1.19.3">1.19.3</option> 
+                        <option value="1.19.2">1.19.2</option> 
+                        <option value="1.19.1">1.19.1</option> 
+                        <option value="1.19">1.19</option> 
+                        <option value="1.18.2">1.18.2</option> 
+                        <option value="1.18.1">1.18.1</option> 
+                        <option value="1.18">1.18</option> 
+                        <option value="1.17.1">1.17.1</option> 
+                        <option value="1.17">1.17</option> 
+                        <option value="1.16.5">1.16.5</option> 
+                        <option value="1.16.4">1.16.4</option> 
+                        <option value="1.16.3">1.16.3</option>
+                        <option value="1.16.2">1.16.2</option> 
+                        <option value="1.16.1">1.16.1</option> 
+                        <option value="1.16">1.16</option> 
+                        <option value="1.15.2">1.15.2</option> 
+                        <option value="1.15.1">1.15.1</option> 
+                        <option value="1.15">1.15</option> 
+                        <option value="1.14.4">1.14.4</option> 
+                        <option value="1.14.3">1.14.3</option> 
+                        <option value="1.14.2">1.14.2</option> 
+                        <option value="1.14.1">1.14.1</option> 
+                        <option value="1.14">1.14</option>
                     </select>
                 </div>
 
@@ -242,19 +246,19 @@
             </div>
 
             <div id="output-form">
+                <h2>Ошибки:</h2>
+                <p id="errors">Ошибок нет</p>
+
+                <button id="save-button" class="submit" onclick="save_zip()" style="position:absolute;bottom:60px;margin-left:100px;display:none">Скачать</button>
                 <div id="load-bar"><div id="loaded-bar"></div></div>
-                <p>Не найдено:</p>
-                <p></p>
             </div>
         </div>
     </div>
 
     <script type="text/javascript">
-        let version_input = document.getElementById('version');
-        let files_input = document.getElementById('files');
-
         String.prototype.toTitle = function () {
-            return this.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+            return this.replace(/\w\S*/g, function(txt){
+                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
         };
 
         window.addEventListener("load",function() {
@@ -438,9 +442,17 @@
             }
         }
 
+        let version_input = document.getElementById('versions');
+        let files_input = document.getElementById('files');
+        let save_button = document.getElementById('save-button');
+        let errors = document.getElementById('errors');
+
         let last_zip;
 
         function save_zip() {
+            if (executing) return
+            let new_loader = document.querySelector('input[name="loader"]:checked').value;
+            let version = version_input.options[version_input.selectedIndex].value;
             saveAs(last_zip, new_loader.toTitle()+'_'+version.replaceAll(".","_")+"_mods"+'.zip')
         }
 
@@ -448,15 +460,30 @@
         let loadbar_size = 100
         let loadbar_progress = 0
 
+        let executing = false
+
         function update_loadbar() {
             transition.begin(loadbar, "width "+loadbar.style["width"]+" "+(loadbar_progress/loadbar_size*100)+"% 100ms ease");
         }
 
         async function start() {
+            if (executing) return
+            executing = true
+            errors.innerHTML = ""
+            if (save_button.style["display"] != "none") {
+                transition.begin(save_button, "opacity 100% 0% 200ms ease");
+                transition.begin(save_button, "bottom 60px 0px 200ms ease");
+                setTimeout(() => {
+                    save_button.style["display"] = "none"
+                },200)
+            }
             let old_loader = document.querySelector('input[name="old_loader"]:checked').value;
             let new_loader = document.querySelector('input[name="loader"]:checked').value;
             let files = files_input.files;
-            let version = version_input.value;
+            let version = version_input.options[version_input.selectedIndex].value;
+
+            loadbar_progress = 0
+            update_loadbar()
             
             if (version != '' && files.length > 0) {
                 loadbar_size = files.length*2
@@ -467,12 +494,13 @@
                 let invalid_found = []
                 for (const f of files) {
                     let name = await get_name(f,old_loader)
-                    if (name != undefined) {
+                    if (name != undefined && name != null) {
                         names[names.length] = name
                         regex_names[name] = regex_name(name)
                         loadbar_progress++
                     } else {
                         loadbar_size -= 2
+                        errors.innerHTML += f.name+" не обнаружен<br>"
                     }
                     update_loadbar()
                 }
@@ -485,14 +513,18 @@
                         zip.file(data[0], data[1])
                     } else {
                         invalid_found[invalid_found.length] = i
+                        errors.innerHTML += n+" не найден<br>"
                     }
                     loadbar_progress++
                     update_loadbar()
                 }
+                if (errors.innerHTML == "") errors.innerHTML = "Ошибок нет"
                 zip.generateAsync({type: "blob"}).then(content => {  
                     last_zip = content;
-                    loadbar_progress = 0
-                    update_loadbar()
+                    save_button.style["display"] = null
+                    transition.begin(save_button, "opacity 0% 100% 200ms ease");
+                    transition.begin(save_button, "bottom 0px 60px 200ms ease");
+                    executing = false
                 })
             }
         }
