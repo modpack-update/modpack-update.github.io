@@ -371,78 +371,86 @@
         }
 
         async function find_on_modrinth(query,version,loader,regex_query) {
-            let resp = await $.ajax({
-                url: 'https://api.modrinth.com/v2/search',
-                type: "GET",
-                data: {"query": query},
-                dataType: "JSON"
-            })
-            if (resp != undefined && 
-                    "hits" in resp && 
-                    resp["hits"].length > 0) {
-                for (const hit of resp["hits"]) {
-                    if (similarity(regex_name(hit["title"]),regex_query) > 0.8) {
-                        if (hit["categories"].includes(loader)) {
-                            resp = await $.ajax({
-                                url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
-                                type: "GET",
-                                data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
-                                dataType: "JSON"
-                            })
-                            console.log($.ajax({
-                                url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
-                                type: "GET",
-                                data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
-                                dataType: "JSON"
-                            }))
-                            if (len(resp) > 0 && len(resp[0]["files"]) > 0) {
-                                let file = await $.ajax({
-                                    url: resp[0]["files"][0]["url"],
-                                    type: "GET"
+            try {
+                let resp = await $.ajax({
+                    url: 'https://api.modrinth.com/v2/search',
+                    type: "GET",
+                    data: {"query": query},
+                    dataType: "JSON"
+                })
+                if (resp != undefined && 
+                        "hits" in resp && 
+                        resp["hits"].length > 0) {
+                    for (const hit of resp["hits"]) {
+                        if (similarity(regex_name(hit["title"]),regex_query) > 0.8) {
+                            if (hit["categories"].includes(loader)) {
+                                resp = await $.ajax({
+                                    url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
+                                    type: "GET",
+                                    data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
+                                    dataType: "JSON"
                                 })
-                                return [resp[0]["files"][0]["filename"],file]
+                                console.log($.ajax({
+                                    url: 'https://api.modrinth.com/v2/project/'+hit['project_id']+'/version',
+                                    type: "GET",
+                                    data: {"loaders":'["'+loader+'"]',"game_versions":'["'+version+'"]'},
+                                    dataType: "JSON"
+                                }))
+                                if (len(resp) > 0 && len(resp[0]["files"]) > 0) {
+                                    let file = await $.ajax({
+                                        url: resp[0]["files"][0]["url"],
+                                        type: "GET"
+                                    })
+                                    return [resp[0]["files"][0]["filename"],file]
+                                }
                             }
                         }
                     }
                 }
+            } catch (err) {
+                console.log(err)
             }
         }
 
         async function find_on_curseforge(query,version,loader,regex_query) {
-            let resp = await $.ajax({
-                url: 'https://api.curseforge.com/v1/mods/search',
-                type: "GET",
-                data: {"gameId":432, 
-                    "modLoaderType":loader.toTitle(), 
-                    "gameVersion":version,
-                    "searchFilter":query},
-                headers: {"x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.","Accept": "application/json"},
-                dataType: "JSON"
-            })
-            if (resp != undefined && 
-                    "data" in resp && 
-                    len(resp["data"]) > 0) {
-                for (const hit of resp["data"]) {
-                    if (similarity(regex_name(hit["name"]),regex_query) > 0.8) {
-                        let files = await $.ajax({
-                            url: 'https://api.curseforge.com/v1/mods/'+hit['id']+'/files',
-                            type: "GET",
-                            data: {"modLoaderType":loader.title(),"gameVersion":version},
-                            headers: {"x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.","Accept": "application/json"},
-                            dataType: "JSON"
-                        })
-                        if (files != undefined && 
-                                "data" in files && 
-                                len(files["data"]) > 0) {
-                            files = files["data"]
-                            let file = await $.ajax({
-                                url: files[0]["downloadUrl"],
-                                type: "GET"
+            try {
+                let resp = await $.ajax({
+                    url: 'https://api.curseforge.com/v1/mods/search',
+                    type: "GET",
+                    data: {"gameId":432, 
+                        "modLoaderType":loader.toTitle(), 
+                        "gameVersion":version,
+                        "searchFilter":query},
+                    headers: {"x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.","Accept": "application/json"},
+                    dataType: "JSON"
+                })
+                if (resp != undefined && 
+                        "data" in resp && 
+                        len(resp["data"]) > 0) {
+                    for (const hit of resp["data"]) {
+                        if (similarity(regex_name(hit["name"]),regex_query) > 0.8) {
+                            let files = await $.ajax({
+                                url: 'https://api.curseforge.com/v1/mods/'+hit['id']+'/files',
+                                type: "GET",
+                                data: {"modLoaderType":loader.title(),"gameVersion":version},
+                                headers: {"x-api-key": "$2a$10$WldWeyy9nRXLI9Dbjyr7UuES2Dy9fvKbBfMmQHUwHWNR8daJA2FI.","Accept": "application/json"},
+                                dataType: "JSON"
                             })
-                            return [files[0]["fileName"],file]
+                            if (files != undefined && 
+                                    "data" in files && 
+                                    len(files["data"]) > 0) {
+                                files = files["data"]
+                                let file = await $.ajax({
+                                    url: files[0]["downloadUrl"],
+                                    type: "GET"
+                                })
+                                return [files[0]["fileName"],file]
+                            }
                         }
                     }
                 }
+            } catch (err) {
+                console.log(err)
             }
         }
 
